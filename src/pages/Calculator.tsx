@@ -283,6 +283,7 @@ const Calculator = () => {
               </div>
               
               <InputField
+                label="Water Density" 
                 name="waterDensity"
                 type="number"
                 placeholder="Enter water density"
