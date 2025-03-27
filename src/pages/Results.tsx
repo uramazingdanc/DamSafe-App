@@ -3,6 +3,8 @@ import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import NavBar from '@/components/NavBar';
 import CalculationCard from '@/components/CalculationCard';
+import DamVisualization from '@/components/DamVisualization';
+import CalculationSteps from '@/components/CalculationSteps';
 import { DamInputs, CalculationResults } from '@/utils/types';
 import { Square, Triangle, Hexagon, Download, RotateCcw } from 'lucide-react';
 
@@ -38,7 +40,7 @@ const Results = () => {
     <div className="min-h-screen bg-dam-dark text-white pb-20">
       <NavBar />
       
-      <div className="container max-w-3xl mx-auto px-4 pt-20">
+      <div className="container max-w-5xl mx-auto px-4 pt-20">
         <div className="text-center mb-8 animate-fade-up">
           <h1 className="text-2xl font-bold mb-2">Stability Results</h1>
           <div className="flex items-center justify-center text-white/70">
@@ -48,31 +50,47 @@ const Results = () => {
           </div>
         </div>
         
-        {/* Safety factors - most important results */}
-        <div className="mb-8">
-          <h2 className="text-lg font-medium border-b border-white/10 pb-2 mb-4 animate-fade-up">
-            Safety Factors
-          </h2>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <CalculationCard
-              title="Factor of Safety against Sliding"
-              value={results.safetyFactorSliding}
-              description="Resistance to horizontal movement"
-              isSafetyFactor
-              withStatus
-              delay={1}
-            />
-            
-            <CalculationCard
-              title="Factor of Safety against Overturning"
-              value={results.safetyFactorOverturning}
-              description="Resistance to rotation"
-              isSafetyFactor
-              withStatus
-              delay={2}
+        {/* Dam visualization and safety factors */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
+          {/* Dam visualization */}
+          <div className="animate-fade-up">
+            <DamVisualization 
+              inputs={inputs} 
+              locationOfRy={results.locationOfRy}
             />
           </div>
+          
+          {/* Safety factors - most important results */}
+          <div>
+            <h2 className="text-lg font-medium border-b border-white/10 pb-2 mb-4 animate-fade-up">
+              Safety Factors
+            </h2>
+            
+            <div className="space-y-4">
+              <CalculationCard
+                title="Factor of Safety against Sliding"
+                value={results.safetyFactorSliding}
+                description="Resistance to horizontal movement"
+                isSafetyFactor
+                withStatus
+                delay={1}
+              />
+              
+              <CalculationCard
+                title="Factor of Safety against Overturning"
+                value={results.safetyFactorOverturning}
+                description="Resistance to rotation"
+                isSafetyFactor
+                withStatus
+                delay={2}
+              />
+            </div>
+          </div>
+        </div>
+        
+        {/* Step-by-step calculations */}
+        <div className="mb-10">
+          <CalculationSteps steps={results.calculationSteps} />
         </div>
         
         {/* Forces */}

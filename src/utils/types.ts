@@ -33,4 +33,14 @@ export interface CalculationResults {
   locationOfRy: number;
   safetyFactorSliding: number;
   safetyFactorOverturning: number;
+  calculationSteps: CalculationStep[];
+}
+
+// Step-by-step calculation explanation
+export interface CalculationStep {
+  title: string;
+  formula: string;
+  explanation: string;
+  value: number;
+  unit?: string;
 }
