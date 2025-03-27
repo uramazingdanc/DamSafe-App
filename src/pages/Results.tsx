@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import NavBar from '@/components/NavBar';
 import CalculationCard from '@/components/CalculationCard';
@@ -7,19 +7,35 @@ import DamVisualization from '@/components/DamVisualization';
 import CalculationSteps from '@/components/CalculationSteps';
 import { DamInputs, CalculationResults } from '@/utils/types';
 import { Square, Triangle, Hexagon, Download, RotateCcw } from 'lucide-react';
+import { toast } from 'sonner';
 
 const Results = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  
+  // Check if state exists before destructuring
+  const hasValidState = location.state && 
+    location.state.results && 
+    location.state.inputs;
+  
+  // Use useEffect to redirect if state is missing
+  useEffect(() => {
+    if (!hasValidState) {
+      toast.error('No calculation data found. Redirecting to calculator.');
+      navigate('/calculator');
+    }
+  }, [hasValidState, navigate]);
+  
+  // Return early if state is missing to prevent errors during the redirect
+  if (!hasValidState) {
+    return null;
+  }
+  
+  // Now it's safe to destructure
   const { results, inputs } = location.state as { 
     results: CalculationResults, 
     inputs: DamInputs 
   };
-  
-  if (!results || !inputs) {
-    navigate('/calculator');
-    return null;
-  }
   
   const getStructureIcon = () => {
     switch (inputs.structureType) {
