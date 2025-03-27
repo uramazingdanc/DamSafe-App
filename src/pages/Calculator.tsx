@@ -283,7 +283,7 @@ const Calculator = () => {
               </div>
               
               <InputField
-                label="Water Density" 
+                label="Water Density"
                 name="waterDensity"
                 type="number"
                 placeholder="Enter water density"
@@ -292,7 +292,7 @@ const Calculator = () => {
                 suffix={unitSystem === 'imperial' ? 'lb/ft³' : waterDensityUnit}
                 error={errors.waterDensity}
                 min="0"
-                step="0.1"
+                step="0.01"
               />
             </div>
             
