@@ -2,6 +2,9 @@
 // Structure forms
 export type StructureType = "rectangle" | "triangle" | "trapezoid";
 
+// Water density units
+export type WaterDensityUnit = "kN/m³" | "kg/m³";
+
 // Input data types
 export interface DamInputs {
   structureType: StructureType;
@@ -11,6 +14,7 @@ export interface DamInputs {
   crestWidth?: number; // Only for trapezoid
   concreteDensity: number;
   waterDensity: number;
+  waterDensityUnit: WaterDensityUnit;
   frictionCoefficient: number;
   heelUplift?: number; // Optional
   toeUplift?: number; // Optional

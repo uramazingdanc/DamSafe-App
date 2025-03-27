@@ -1,17 +1,25 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import NavBar from '@/components/NavBar';
 import InputField from '@/components/InputField';
 import StructuralForm from '@/components/StructuralForm';
-import { DamInputs, StructureType } from '@/utils/types';
-import { calculateDamStability } from '@/utils/calculations';
+import { DamInputs, StructureType, WaterDensityUnit } from '@/utils/types';
+import { calculateDamStability, convertWaterDensity } from '@/utils/calculations';
 import { toast } from 'sonner';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 const Calculator = () => {
   const navigate = useNavigate();
   const [structureType, setStructureType] = useState<StructureType>('rectangle');
   const [unitSystem, setUnitSystem] = useState<'metric' | 'imperial'>('metric');
+  const [waterDensityUnit, setWaterDensityUnit] = useState<WaterDensityUnit>('kN/m³');
   
   const [inputs, setInputs] = useState<Partial<DamInputs>>({
     structureType: 'rectangle',
@@ -21,6 +29,7 @@ const Calculator = () => {
     crestWidth: undefined,
     concreteDensity: unitSystem === 'metric' ? 23.5 : 149.76, // Default values
     waterDensity: unitSystem === 'metric' ? 9.81 : 62.4, // Default values
+    waterDensityUnit: 'kN/m³',
     frictionCoefficient: 0.7, // Default value
     heelUplift: 0,
     toeUplift: 0,
@@ -28,6 +37,23 @@ const Calculator = () => {
   });
   
   const [errors, setErrors] = useState<Record<string, string>>({});
+  
+  // Effect to convert water density when units change
+  useEffect(() => {
+    if (inputs.waterDensity && inputs.waterDensityUnit !== waterDensityUnit) {
+      const convertedDensity = convertWaterDensity(
+        inputs.waterDensity,
+        inputs.waterDensityUnit as WaterDensityUnit,
+        waterDensityUnit
+      );
+      
+      setInputs(prev => ({
+        ...prev,
+        waterDensity: convertedDensity,
+        waterDensityUnit
+      }));
+    }
+  }, [waterDensityUnit]);
   
   const handleStructureChange = (type: StructureType) => {
     setStructureType(type);
@@ -39,7 +65,14 @@ const Calculator = () => {
     
     // Update density values based on unit system
     const concreteDensity = system === 'metric' ? 23.5 : 149.76;
-    const waterDensity = system === 'metric' ? 9.81 : 62.4;
+    
+    // Default water density in current unit
+    let waterDensity: number;
+    if (system === 'metric') {
+      waterDensity = waterDensityUnit === 'kN/m³' ? 9.81 : 1000;
+    } else {
+      waterDensity = 62.4; // lb/ft³
+    }
     
     setInputs(prev => ({
       ...prev,
@@ -47,6 +80,10 @@ const Calculator = () => {
       waterDensity,
       unitSystem: system
     }));
+  };
+  
+  const handleWaterDensityUnitChange = (unit: WaterDensityUnit) => {
+    setWaterDensityUnit(unit);
   };
   
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -225,18 +262,38 @@ const Calculator = () => {
               step="0.1"
             />
             
-            <InputField
-              label="Water Density"
-              name="waterDensity"
-              type="number"
-              placeholder="Enter water density"
-              value={inputs.waterDensity || ''}
-              onChange={handleInputChange}
-              suffix={unitSystem === 'metric' ? 'kN/m³' : 'lb/ft³'}
-              error={errors.waterDensity}
-              min="0"
-              step="0.1"
-            />
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <label htmlFor="waterDensity" className="block text-sm font-medium text-white/90">
+                  Water Density
+                </label>
+                
+                <Select
+                  value={waterDensityUnit}
+                  onValueChange={(value) => handleWaterDensityUnitChange(value as WaterDensityUnit)}
+                >
+                  <SelectTrigger className="w-24 h-8 bg-white/5 border-white/20 text-sm">
+                    <SelectValue placeholder="Unit" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-dam-dark border-white/20">
+                    <SelectItem value="kN/m³">kN/m³</SelectItem>
+                    <SelectItem value="kg/m³">kg/m³</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <InputField
+                name="waterDensity"
+                type="number"
+                placeholder="Enter water density"
+                value={inputs.waterDensity || ''}
+                onChange={handleInputChange}
+                suffix={unitSystem === 'imperial' ? 'lb/ft³' : waterDensityUnit}
+                error={errors.waterDensity}
+                min="0"
+                step="0.1"
+              />
+            </div>
             
             <InputField
               label="Friction Coefficient"

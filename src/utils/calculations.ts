@@ -1,5 +1,24 @@
 
-import { DamInputs, CalculationResults, StructureType } from './types';
+import { DamInputs, CalculationResults, StructureType, WaterDensityUnit } from './types';
+
+// Convert kg/m³ to kN/m³ (multiply by g=9.81 and divide by 1000)
+export const convertWaterDensity = (
+  density: number, 
+  fromUnit: WaterDensityUnit, 
+  toUnit: WaterDensityUnit
+): number => {
+  if (fromUnit === toUnit) return density;
+  
+  if (fromUnit === 'kg/m³' && toUnit === 'kN/m³') {
+    // Convert kg/m³ to kN/m³: multiply by 9.81/1000
+    return density * 9.81 / 1000;
+  } else if (fromUnit === 'kN/m³' && toUnit === 'kg/m³') {
+    // Convert kN/m³ to kg/m³: multiply by 1000/9.81
+    return density * 1000 / 9.81;
+  }
+  
+  return density; // Default case (should never reach here)
+};
 
 // Calculate dam volume based on structural type
 const calculateVolume = (inputs: DamInputs): number => {
@@ -50,10 +69,15 @@ const calculateUpliftArea = (inputs: DamInputs): number => {
 
 // Calculate hydrostatic pressure (water force)
 const calculateHydrostaticPressure = (inputs: DamInputs): number => {
-  const { waterDensity, waterLevel } = inputs;
+  const { waterDensity, waterDensityUnit, waterLevel } = inputs;
+  
+  // Convert waterDensity to kN/m³ for calculations if needed
+  const densityInKN = waterDensityUnit === 'kg/m³' 
+    ? convertWaterDensity(waterDensity, 'kg/m³', 'kN/m³') 
+    : waterDensity;
   
   // Force = density × g × h × area (triangular pressure distribution)
-  return waterDensity * (waterLevel * waterLevel) / 2;
+  return densityInKN * (waterLevel * waterLevel) / 2;
 };
 
 // Process all calculations
@@ -61,9 +85,15 @@ export const calculateDamStability = (inputs: DamInputs): CalculationResults => 
   const {
     concreteDensity,
     waterDensity,
+    waterDensityUnit,
     frictionCoefficient,
     waterLevel,
   } = inputs;
+  
+  // Convert water density to kN/m³ for calculations if needed
+  const waterDensityInKN = waterDensityUnit === 'kg/m³' 
+    ? convertWaterDensity(waterDensity, 'kg/m³', 'kN/m³') 
+    : waterDensity;
   
   // Step 1: Calculate self-weight of the dam
   const volume = calculateVolume(inputs);
@@ -71,10 +101,14 @@ export const calculateDamStability = (inputs: DamInputs): CalculationResults => 
   
   // Step 2: Calculate hydrostatic uplift (if applicable)
   const upliftArea = calculateUpliftArea(inputs);
-  const hydrostaticUplift = waterDensity * upliftArea;
+  const hydrostaticUplift = waterDensityInKN * upliftArea;
   
   // Step 3: Calculate hydrostatic pressure force
-  const hydrostaticPressure = calculateHydrostaticPressure(inputs);
+  const hydrostaticPressure = calculateHydrostaticPressure({
+    ...inputs,
+    waterDensity: waterDensityInKN,
+    waterDensityUnit: 'kN/m³'
+  });
   
   // Step 4: Calculate vertical reaction (Ry)
   const verticalReaction = selfWeight - hydrostaticUplift;
