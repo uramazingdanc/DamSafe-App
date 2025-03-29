@@ -5,7 +5,7 @@ import NavBar from '@/components/NavBar';
 import InputField from '@/components/InputField';
 import StructuralForm from '@/components/StructuralForm';
 import { DamInputs, StructureType, WaterDensityUnit } from '@/utils/types';
-import { calculateDamStability, convertWaterDensity } from '@/utils/calculations';
+import { calculateDamStability, convertWaterDensity, getDefaultWaterDensity } from '@/utils/calculations';
 import { toast } from 'sonner';
 import {
   Select,
@@ -14,12 +14,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 
 const Calculator = () => {
   const navigate = useNavigate();
   const [structureType, setStructureType] = useState<StructureType>('rectangle');
   const [unitSystem, setUnitSystem] = useState<'metric' | 'imperial'>('metric');
   const [waterDensityUnit, setWaterDensityUnit] = useState<WaterDensityUnit>('kN/m³');
+  const [advancedMode, setAdvancedMode] = useState(false);
+  const [solveForMode, setSolveForMode] = useState(false);
   
   const [inputs, setInputs] = useState<Partial<DamInputs>>({
     structureType: 'rectangle',
@@ -28,12 +33,13 @@ const Calculator = () => {
     waterLevel: undefined,
     crestWidth: undefined,
     concreteDensity: unitSystem === 'metric' ? 23.5 : 149.76, // Default values
-    waterDensity: unitSystem === 'metric' ? 9.81 : 62.4, // Default values
+    waterDensity: getDefaultWaterDensity(waterDensityUnit), // Use new helper function
     waterDensityUnit: 'kN/m³',
     frictionCoefficient: 0.7, // Default value
     heelUplift: 0,
     toeUplift: 0,
-    unitSystem: 'metric'
+    unitSystem: 'metric',
+    solveFor: 'none'
   });
   
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -69,7 +75,7 @@ const Calculator = () => {
     // Default water density in current unit
     let waterDensity: number;
     if (system === 'metric') {
-      waterDensity = waterDensityUnit === 'kN/m³' ? 9.81 : 1000;
+      waterDensity = getDefaultWaterDensity(waterDensityUnit);
     } else {
       waterDensity = 62.4; // lb/ft³
     }
@@ -101,12 +107,52 @@ const Calculator = () => {
     }
   };
   
+  const handleSolveForChange = (value: string) => {
+    setInputs(prev => ({ 
+      ...prev, 
+      solveFor: value as 'none' | 'waterLevel' | 'baseWidth' | 'frictionCoefficient' 
+    }));
+  };
+  
   const validateInputs = (): boolean => {
     const newErrors: Record<string, string> = {};
-    const requiredFields = ['baseWidth', 'height', 'waterLevel', 'concreteDensity', 'waterDensity', 'frictionCoefficient'];
+    const requiredFields = ['baseWidth', 'height', 'waterLevel', 'concreteDensity', 'waterDensity'];
+    
+    // Add friction coefficient if not in solve-for mode or if not solving for friction
+    if (!solveForMode || inputs.solveFor !== 'frictionCoefficient') {
+      requiredFields.push('frictionCoefficient');
+    }
+    
+    // Add target safety factor if in solve-for mode
+    if (solveForMode && inputs.solveFor !== 'none') {
+      requiredFields.push('targetSafetyFactor');
+    }
     
     if (structureType === 'trapezoid') {
       requiredFields.push('crestWidth');
+    }
+    
+    // Different validation for solve-for mode
+    if (solveForMode) {
+      if (inputs.solveFor === 'waterLevel') {
+        // Remove waterLevel from required fields
+        const index = requiredFields.indexOf('waterLevel');
+        if (index > -1) {
+          requiredFields.splice(index, 1);
+        }
+      } else if (inputs.solveFor === 'baseWidth') {
+        // Remove baseWidth from required fields
+        const index = requiredFields.indexOf('baseWidth');
+        if (index > -1) {
+          requiredFields.splice(index, 1);
+        }
+      } else if (inputs.solveFor === 'frictionCoefficient') {
+        // Remove frictionCoefficient from required fields
+        const index = requiredFields.indexOf('frictionCoefficient');
+        if (index > -1) {
+          requiredFields.splice(index, 1);
+        }
+      }
     }
     
     requiredFields.forEach(field => {
@@ -116,7 +162,7 @@ const Calculator = () => {
     });
     
     // Validate water level is less than or equal to height
-    if (inputs.waterLevel && inputs.height && inputs.waterLevel > inputs.height) {
+    if (inputs.waterLevel && inputs.height && inputs.waterLevel > inputs.height && inputs.solveFor !== 'waterLevel') {
       newErrors.waterLevel = 'Water level cannot exceed dam height';
     }
     
@@ -153,12 +199,72 @@ const Calculator = () => {
       <NavBar />
       
       <div className="container max-w-md mx-auto px-4 pt-20">
-        <div className="text-center mb-8 animate-fade-up">
+        <div className="text-center mb-6 animate-fade-up">
           <h1 className="text-2xl font-bold mb-2">Dam Parameters</h1>
           <p className="text-white/70">Enter measurements and properties</p>
         </div>
         
+        <div className="mb-6 flex justify-end items-center">
+          <div className="flex items-center space-x-2">
+            <Switch 
+              id="advanced-mode" 
+              checked={advancedMode} 
+              onCheckedChange={setAdvancedMode}
+            />
+            <Label htmlFor="advanced-mode">Advanced Mode</Label>
+          </div>
+        </div>
+        
         <form onSubmit={handleSubmit} className="space-y-6">
+          {advancedMode && (
+            <div className="mb-4 animate-fade-up">
+              <div className="flex items-center space-x-2 mb-4">
+                <Switch 
+                  id="solve-for-mode" 
+                  checked={solveForMode} 
+                  onCheckedChange={setSolveForMode}
+                />
+                <Label htmlFor="solve-for-mode">Solve for Unknown Parameter</Label>
+              </div>
+              
+              {solveForMode && (
+                <div className="mt-2">
+                  <label className="block text-sm font-medium text-white/90 mb-2">
+                    Parameter to Solve For
+                  </label>
+                  <Select
+                    value={inputs.solveFor || 'none'}
+                    onValueChange={handleSolveForChange}
+                  >
+                    <SelectTrigger className="bg-white/5 border-white/20">
+                      <SelectValue placeholder="Select parameter" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-dam-dark border-white/20">
+                      <SelectItem value="none">None</SelectItem>
+                      <SelectItem value="waterLevel">Water Level</SelectItem>
+                      <SelectItem value="baseWidth">Base Width</SelectItem>
+                      <SelectItem value="frictionCoefficient">Friction Coefficient</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  
+                  {inputs.solveFor !== 'none' && (
+                    <InputField
+                      label="Target Safety Factor"
+                      name="targetSafetyFactor"
+                      type="number"
+                      placeholder="Enter target safety factor"
+                      value={inputs.targetSafetyFactor || ''}
+                      onChange={handleInputChange}
+                      error={errors.targetSafetyFactor}
+                      min="1"
+                      step="0.1"
+                    />
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+          
           {/* Structure selection */}
           <StructuralForm 
             selected={structureType} 
@@ -186,160 +292,175 @@ const Calculator = () => {
             </div>
           </div>
           
-          {/* Main dimensions */}
-          <div className="space-y-4 animate-fade-up animate-delay-400">
-            <h2 className="text-lg font-medium border-b border-white/10 pb-2 mb-3">Dimensions</h2>
+          <Tabs defaultValue="dimensions" className="animate-fade-up animate-delay-400">
+            <TabsList className="grid w-full grid-cols-3 bg-white/5">
+              <TabsTrigger value="dimensions">Dimensions</TabsTrigger>
+              <TabsTrigger value="materials">Materials</TabsTrigger>
+              {advancedMode && <TabsTrigger value="uplift">Uplift</TabsTrigger>}
+            </TabsList>
             
-            <InputField
-              label="Base Width"
-              name="baseWidth"
-              type="number"
-              placeholder="Enter base width"
-              value={inputs.baseWidth || ''}
-              onChange={handleInputChange}
-              suffix={unitSystem === 'metric' ? 'm' : 'ft'}
-              error={errors.baseWidth}
-              min="0"
-              step="0.1"
-            />
-            
-            <InputField
-              label="Height"
-              name="height"
-              type="number"
-              placeholder="Enter height"
-              value={inputs.height || ''}
-              onChange={handleInputChange}
-              suffix={unitSystem === 'metric' ? 'm' : 'ft'}
-              error={errors.height}
-              min="0"
-              step="0.1"
-            />
-            
-            <InputField
-              label="Water Level"
-              name="waterLevel"
-              type="number"
-              placeholder="Enter water level"
-              value={inputs.waterLevel || ''}
-              onChange={handleInputChange}
-              suffix={unitSystem === 'metric' ? 'm' : 'ft'}
-              error={errors.waterLevel}
-              min="0"
-              step="0.1"
-            />
-            
-            {structureType === 'trapezoid' && (
+            {/* Main dimensions */}
+            <TabsContent value="dimensions" className="space-y-4 mt-4">
+              <h2 className="text-lg font-medium border-b border-white/10 pb-2 mb-3">Dimensions</h2>
+              
               <InputField
-                label="Crest Width"
-                name="crestWidth"
+                label="Base Width"
+                name="baseWidth"
                 type="number"
-                placeholder="Enter crest width"
-                value={inputs.crestWidth || ''}
+                placeholder="Enter base width"
+                value={inputs.baseWidth || ''}
                 onChange={handleInputChange}
                 suffix={unitSystem === 'metric' ? 'm' : 'ft'}
-                error={errors.crestWidth}
+                error={errors.baseWidth}
+                min="0"
+                step="0.1"
+                disabled={solveForMode && inputs.solveFor === 'baseWidth'}
+              />
+              
+              <InputField
+                label="Height"
+                name="height"
+                type="number"
+                placeholder="Enter height"
+                value={inputs.height || ''}
+                onChange={handleInputChange}
+                suffix={unitSystem === 'metric' ? 'm' : 'ft'}
+                error={errors.height}
                 min="0"
                 step="0.1"
               />
-            )}
-          </div>
-          
-          {/* Material properties */}
-          <div className="space-y-4 animate-fade-up animate-delay-500">
-            <h2 className="text-lg font-medium border-b border-white/10 pb-2 mb-3">Material Properties</h2>
+              
+              <InputField
+                label="Water Level"
+                name="waterLevel"
+                type="number"
+                placeholder="Enter water level"
+                value={inputs.waterLevel || ''}
+                onChange={handleInputChange}
+                suffix={unitSystem === 'metric' ? 'm' : 'ft'}
+                error={errors.waterLevel}
+                min="0"
+                step="0.1"
+                disabled={solveForMode && inputs.solveFor === 'waterLevel'}
+              />
+              
+              {structureType === 'trapezoid' && (
+                <InputField
+                  label="Crest Width"
+                  name="crestWidth"
+                  type="number"
+                  placeholder="Enter crest width"
+                  value={inputs.crestWidth || ''}
+                  onChange={handleInputChange}
+                  suffix={unitSystem === 'metric' ? 'm' : 'ft'}
+                  error={errors.crestWidth}
+                  min="0"
+                  step="0.1"
+                />
+              )}
+            </TabsContent>
             
-            <InputField
-              label="Concrete Density"
-              name="concreteDensity"
-              type="number"
-              placeholder="Enter concrete density"
-              value={inputs.concreteDensity || ''}
-              onChange={handleInputChange}
-              suffix={unitSystem === 'metric' ? 'kN/m³' : 'lb/ft³'}
-              error={errors.concreteDensity}
-              min="0"
-              step="0.1"
-            />
-            
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <label htmlFor="waterDensity" className="block text-sm font-medium text-white/90">
-                  Water Density
-                </label>
+            {/* Material properties */}
+            <TabsContent value="materials" className="space-y-4 mt-4">
+              <h2 className="text-lg font-medium border-b border-white/10 pb-2 mb-3">Material Properties</h2>
+              
+              <InputField
+                label="Concrete Density"
+                name="concreteDensity"
+                type="number"
+                placeholder="Enter concrete density"
+                value={inputs.concreteDensity || ''}
+                onChange={handleInputChange}
+                suffix={unitSystem === 'metric' ? 'kN/m³' : 'lb/ft³'}
+                error={errors.concreteDensity}
+                min="0"
+                step="0.1"
+              />
+              
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label htmlFor="waterDensity" className="block text-sm font-medium text-white/90">
+                    Water Density
+                  </label>
+                  
+                  {unitSystem === 'metric' && (
+                    <Select
+                      value={waterDensityUnit}
+                      onValueChange={(value) => handleWaterDensityUnitChange(value as WaterDensityUnit)}
+                    >
+                      <SelectTrigger className="w-24 h-8 bg-white/5 border-white/20 text-sm">
+                        <SelectValue placeholder="Unit" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-dam-dark border-white/20">
+                        <SelectItem value="kN/m³">kN/m³</SelectItem>
+                        <SelectItem value="kg/m³">kg/m³</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  )}
+                </div>
                 
-                <Select
-                  value={waterDensityUnit}
-                  onValueChange={(value) => handleWaterDensityUnitChange(value as WaterDensityUnit)}
-                >
-                  <SelectTrigger className="w-24 h-8 bg-white/5 border-white/20 text-sm">
-                    <SelectValue placeholder="Unit" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-dam-dark border-white/20">
-                    <SelectItem value="kN/m³">kN/m³</SelectItem>
-                    <SelectItem value="kg/m³">kg/m³</SelectItem>
-                  </SelectContent>
-                </Select>
+                <InputField
+                  label="Water Density"
+                  name="waterDensity"
+                  type="number"
+                  placeholder="Enter water density"
+                  value={inputs.waterDensity || ''}
+                  onChange={handleInputChange}
+                  suffix={unitSystem === 'imperial' ? 'lb/ft³' : waterDensityUnit}
+                  error={errors.waterDensity}
+                  min="0"
+                  step="0.01"
+                />
               </div>
               
               <InputField
-                label="Water Density"
-                name="waterDensity"
+                label="Friction Coefficient"
+                name="frictionCoefficient"
                 type="number"
-                placeholder="Enter water density"
-                value={inputs.waterDensity || ''}
+                placeholder="Enter friction coefficient"
+                value={inputs.frictionCoefficient || ''}
                 onChange={handleInputChange}
-                suffix={unitSystem === 'imperial' ? 'lb/ft³' : waterDensityUnit}
-                error={errors.waterDensity}
+                error={errors.frictionCoefficient}
                 min="0"
+                max="1"
                 step="0.01"
+                disabled={solveForMode && inputs.solveFor === 'frictionCoefficient'}
               />
-            </div>
+            </TabsContent>
             
-            <InputField
-              label="Friction Coefficient"
-              name="frictionCoefficient"
-              type="number"
-              placeholder="Enter friction coefficient"
-              value={inputs.frictionCoefficient || ''}
-              onChange={handleInputChange}
-              error={errors.frictionCoefficient}
-              min="0"
-              max="1"
-              step="0.01"
-            />
-          </div>
-          
-          {/* Optional uplift inputs */}
-          <div className="space-y-4 animate-fade-up animate-delay-600">
-            <h2 className="text-lg font-medium border-b border-white/10 pb-2 mb-3">
-              Hydrostatic Uplift (Optional)
-            </h2>
-            
-            <InputField
-              label="Heel Uplift"
-              name="heelUplift"
-              type="number"
-              placeholder="Enter heel uplift pressure"
-              value={inputs.heelUplift || ''}
-              onChange={handleInputChange}
-              suffix={unitSystem === 'metric' ? 'm' : 'ft'}
-              min="0"
-              step="0.1"
-            />
-            
-            <InputField
-              label="Toe Uplift"
-              name="toeUplift"
-              type="number"
-              placeholder="Enter toe uplift pressure"
-              value={inputs.toeUplift || ''}
-              onChange={handleInputChange}
-              suffix={unitSystem === 'metric' ? 'm' : 'ft'}
-              min="0"
-              step="0.1"
-            />
-          </div>
+            {/* Optional uplift inputs */}
+            {advancedMode && (
+              <TabsContent value="uplift" className="space-y-4 mt-4">
+                <h2 className="text-lg font-medium border-b border-white/10 pb-2 mb-3">
+                  Hydrostatic Uplift
+                </h2>
+                
+                <InputField
+                  label="Heel Uplift"
+                  name="heelUplift"
+                  type="number"
+                  placeholder="Enter heel uplift pressure"
+                  value={inputs.heelUplift || ''}
+                  onChange={handleInputChange}
+                  suffix={unitSystem === 'metric' ? 'm' : 'ft'}
+                  min="0"
+                  step="0.1"
+                />
+                
+                <InputField
+                  label="Toe Uplift"
+                  name="toeUplift"
+                  type="number"
+                  placeholder="Enter toe uplift pressure"
+                  value={inputs.toeUplift || ''}
+                  onChange={handleInputChange}
+                  suffix={unitSystem === 'metric' ? 'm' : 'ft'}
+                  min="0"
+                  step="0.1"
+                />
+              </TabsContent>
+            )}
+          </Tabs>
           
           {/* Submit button */}
           <div className="pt-4 animate-fade-up animate-delay-700">
@@ -347,7 +468,7 @@ const Calculator = () => {
               type="submit"
               className="w-full bg-dam-blue hover:bg-dam-blue/90 text-white font-medium py-3 px-6 rounded-xl transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-dam-blue/20"
             >
-              Calculate Stability
+              {solveForMode && inputs.solveFor !== 'none' ? 'Solve for Parameter' : 'Calculate Stability'}
             </button>
           </div>
         </form>

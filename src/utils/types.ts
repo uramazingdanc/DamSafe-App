@@ -15,10 +15,12 @@ export interface DamInputs {
   concreteDensity: number;
   waterDensity: number;
   waterDensityUnit: WaterDensityUnit;
-  frictionCoefficient: number;
+  frictionCoefficient?: number; // Now optional
   heelUplift?: number; // Optional
   toeUplift?: number; // Optional
   unitSystem: 'metric' | 'imperial';
+  solveFor?: 'none' | 'waterLevel' | 'baseWidth' | 'frictionCoefficient'; // New field to determine what to solve for
+  targetSafetyFactor?: number; // Target safety factor when solving for an unknown
 }
 
 // Results data types
@@ -31,9 +33,10 @@ export interface CalculationResults {
   rightingMoment: number;
   overturningMoment: number;
   locationOfRy: number;
-  safetyFactorSliding: number;
+  safetyFactorSliding?: number; // Now optional as it might not be calculated
   safetyFactorOverturning: number;
   calculationSteps: CalculationStep[];
+  solvedParameter?: { name: string; value: number }; // For when solving for an unknown parameter
 }
 
 // Step-by-step calculation explanation

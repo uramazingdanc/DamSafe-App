@@ -8,6 +8,7 @@ import CalculationSteps from '@/components/CalculationSteps';
 import { DamInputs, CalculationResults } from '@/utils/types';
 import { Square, Triangle, Hexagon, Download, RotateCcw } from 'lucide-react';
 import { toast } from 'sonner';
+import { formatNumber } from '@/utils/calculations';
 
 const Results = () => {
   const location = useLocation();
@@ -64,6 +65,18 @@ const Results = () => {
             {getStructureIcon()}
             <span className="ml-1 capitalize">{inputs.structureType}</span>
           </div>
+          
+          {/* Show solved parameter if available */}
+          {results.solvedParameter && (
+            <div className="mt-3 bg-dam-blue/20 inline-block px-4 py-2 rounded-full border border-dam-blue/30">
+              <span className="font-medium mr-2">Solved Parameter:</span>
+              <span className="capitalize">{results.solvedParameter.name}: </span>
+              <span className="font-bold">{formatNumber(results.solvedParameter.value)}</span>
+              {results.solvedParameter.name === 'waterLevel' || results.solvedParameter.name === 'baseWidth'
+                ? ` ${unitSuffix}`
+                : ''}
+            </div>
+          )}
         </div>
         
         {/* Dam visualization and safety factors */}
@@ -83,14 +96,16 @@ const Results = () => {
             </h2>
             
             <div className="space-y-4">
-              <CalculationCard
-                title="Factor of Safety against Sliding"
-                value={results.safetyFactorSliding}
-                description="Resistance to horizontal movement"
-                isSafetyFactor
-                withStatus
-                delay={1}
-              />
+              {results.safetyFactorSliding !== undefined && (
+                <CalculationCard
+                  title="Factor of Safety against Sliding"
+                  value={results.safetyFactorSliding}
+                  description="Resistance to horizontal movement"
+                  isSafetyFactor
+                  withStatus
+                  delay={1}
+                />
+              )}
               
               <CalculationCard
                 title="Factor of Safety against Overturning"
