@@ -17,6 +17,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
 const Calculator = () => {
   const navigate = useNavigate();
@@ -25,6 +26,7 @@ const Calculator = () => {
   const [waterDensityUnit, setWaterDensityUnit] = useState<WaterDensityUnit>('kN/m³');
   const [advancedMode, setAdvancedMode] = useState(false);
   const [solveForMode, setSolveForMode] = useState(false);
+  const [needsFrictionCalculation, setNeedsFrictionCalculation] = useState(true);
   
   const [inputs, setInputs] = useState<Partial<DamInputs>>({
     structureType: 'rectangle',
@@ -39,7 +41,8 @@ const Calculator = () => {
     heelUplift: 0,
     toeUplift: 0,
     unitSystem: 'metric',
-    solveFor: 'none'
+    solveFor: 'none',
+    needsFrictionCalculation: true
   });
   
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -60,6 +63,13 @@ const Calculator = () => {
       }));
     }
   }, [waterDensityUnit]);
+  
+  useEffect(() => {
+    setInputs(prev => ({
+      ...prev,
+      needsFrictionCalculation
+    }));
+  }, [needsFrictionCalculation]);
   
   const handleStructureChange = (type: StructureType) => {
     setStructureType(type);
@@ -118,8 +128,8 @@ const Calculator = () => {
     const newErrors: Record<string, string> = {};
     const requiredFields = ['baseWidth', 'height', 'waterLevel', 'concreteDensity', 'waterDensity'];
     
-    // Add friction coefficient if not in solve-for mode or if not solving for friction
-    if (!solveForMode || inputs.solveFor !== 'frictionCoefficient') {
+    // Add friction coefficient if needed and not solving for friction
+    if (needsFrictionCalculation && (!solveForMode || inputs.solveFor !== 'frictionCoefficient')) {
       requiredFields.push('frictionCoefficient');
     }
     
@@ -216,8 +226,9 @@ const Calculator = () => {
         </div>
         
         <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Advanced options */}
           {advancedMode && (
-            <div className="mb-4 animate-fade-up">
+            <div className="mb-4 space-y-4 animate-fade-up">
               <div className="flex items-center space-x-2 mb-4">
                 <Switch 
                   id="solve-for-mode" 
@@ -228,7 +239,7 @@ const Calculator = () => {
               </div>
               
               {solveForMode && (
-                <div className="mt-2">
+                <div className="mt-2 space-y-4">
                   <label className="block text-sm font-medium text-white/90 mb-2">
                     Parameter to Solve For
                   </label>
@@ -262,6 +273,20 @@ const Calculator = () => {
                   )}
                 </div>
               )}
+              
+              <div className="border-t border-white/10 pt-4">
+                <div className="flex items-center space-x-2 mb-2">
+                  <Switch 
+                    id="friction-calculation" 
+                    checked={needsFrictionCalculation} 
+                    onCheckedChange={setNeedsFrictionCalculation}
+                  />
+                  <Label htmlFor="friction-calculation">Calculate Sliding Safety Factor</Label>
+                </div>
+                <p className="text-sm text-white/60">
+                  Turn off if friction coefficient is not relevant to your problem
+                </p>
+              </div>
             </div>
           )}
           
@@ -391,7 +416,7 @@ const Calculator = () => {
                       <SelectTrigger className="w-24 h-8 bg-white/5 border-white/20 text-sm">
                         <SelectValue placeholder="Unit" />
                       </SelectTrigger>
-                      <SelectContent className="bg-dam-dark border-white/20">
+                      <SelectContent className="bg-dam-dark border-white/20 z-50">
                         <SelectItem value="kN/m³">kN/m³</SelectItem>
                         <SelectItem value="kg/m³">kg/m³</SelectItem>
                       </SelectContent>
@@ -413,19 +438,21 @@ const Calculator = () => {
                 />
               </div>
               
-              <InputField
-                label="Friction Coefficient"
-                name="frictionCoefficient"
-                type="number"
-                placeholder="Enter friction coefficient"
-                value={inputs.frictionCoefficient || ''}
-                onChange={handleInputChange}
-                error={errors.frictionCoefficient}
-                min="0"
-                max="1"
-                step="0.01"
-                disabled={solveForMode && inputs.solveFor === 'frictionCoefficient'}
-              />
+              {(needsFrictionCalculation || solveForMode && inputs.solveFor === 'frictionCoefficient') && (
+                <InputField
+                  label="Friction Coefficient"
+                  name="frictionCoefficient"
+                  type="number"
+                  placeholder="Enter friction coefficient"
+                  value={inputs.frictionCoefficient || ''}
+                  onChange={handleInputChange}
+                  error={errors.frictionCoefficient}
+                  min="0"
+                  max="1"
+                  step="0.01"
+                  disabled={solveForMode && inputs.solveFor === 'frictionCoefficient'}
+                />
+              )}
             </TabsContent>
             
             {/* Optional uplift inputs */}

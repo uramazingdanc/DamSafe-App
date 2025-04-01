@@ -1,5 +1,5 @@
 
-import { DamInputs, CalculationResults, StructureType, WaterDensityUnit, CalculationStep } from './types';
+import { DamInputs, CalculationResults, StructureType, WaterDensityUnit, CalculationStep, MassUnit } from './types';
 
 // Convert between kg/m³ and kN/m³
 export const convertWaterDensity = (
@@ -18,6 +18,17 @@ export const convertWaterDensity = (
   }
   
   return density; // Default case (should never reach here)
+};
+
+// Convert force to mass
+export const forceToMass = (force: number, unitSystem: 'metric' | 'imperial'): { mass: number; unit: MassUnit } => {
+  if (unitSystem === 'metric') {
+    // Convert kN to kg (F = m*g, so m = F/g)
+    return { mass: force * 1000 / 9.81, unit: 'kg' };
+  } else {
+    // Convert lb-force to lb-mass (in imperial, they're numerically the same)
+    return { mass: force, unit: 'lb' };
+  }
 };
 
 // Get default water density based on unit
@@ -117,9 +128,10 @@ const calculateHydrostaticPressure = (inputs: DamInputs): number => {
 const calculateSlidingSafetyFactor = (
   verticalReaction: number, 
   horizontalReaction: number, 
-  frictionCoefficient?: number
+  frictionCoefficient?: number,
+  needsFrictionCalculation: boolean = true
 ): number | undefined => {
-  if (frictionCoefficient === undefined) return undefined;
+  if (!needsFrictionCalculation || frictionCoefficient === undefined) return undefined;
   
   return (frictionCoefficient * verticalReaction) / horizontalReaction;
 };
@@ -249,14 +261,14 @@ const calculateIntermediateResults = (inputs: DamInputs) => {
   // Calculate horizontal reaction
   const horizontalReaction = hydrostaticPressure;
   
-  // Calculate righting moment
+  // Calculate righting moment - fixed calculation
   const rightingMoment = selfWeight * centerOfGravity;
   
   // Calculate pressure moment (water acts at h/3 from bottom)
   const pressureMoment = hydrostaticPressure * (inputs.waterLevel / 3);
   
   // Calculate uplift moment
-  const upliftMoment = hydrostaticUplift * centerOfGravity;
+  const upliftMoment = hydrostaticUplift * inputs.baseWidth / 2;
   
   // Calculate total overturning moment
   const overturningMoment = pressureMoment + upliftMoment;
@@ -298,7 +310,8 @@ export const calculateDamStability = (inputs: DamInputs): CalculationResults => 
     toeUplift = 0,
     unitSystem,
     solveFor = 'none',
-    targetSafetyFactor
+    targetSafetyFactor,
+    needsFrictionCalculation
   } = inputs;
   
   // Unit suffixes based on unit system
@@ -393,6 +406,9 @@ export const calculateDamStability = (inputs: DamInputs): CalculationResults => 
     });
   }
   
+  // Convert weight to mass for additional display
+  const { mass: selfWeightMass, unit: massUnit } = forceToMass(selfWeight, unitSystem);
+  
   // Step 1: Calculate volume and self-weight of the dam
   const volumeFormula = getVolumeFormula(structureType);
   
@@ -413,7 +429,9 @@ export const calculateDamStability = (inputs: DamInputs): CalculationResults => 
     formula: "concreteDensity × volume",
     explanation: `The self weight is the product of the concrete density (${concreteDensity} ${densityUnit}) and the volume (${formatNumber(volume)} ${lengthUnit}²).`,
     value: selfWeight,
-    unit: forceUnit
+    unit: forceUnit,
+    alternateValue: selfWeightMass,
+    alternateUnit: massUnit
   });
   
   // Step 2: Calculate hydrostatic uplift (if applicable)
@@ -497,8 +515,8 @@ export const calculateDamStability = (inputs: DamInputs): CalculationResults => 
   if (hydrostaticUplift > 0) {
     calculationSteps.push({
       title: "Calculate Uplift Moment",
-      formula: "hydrostaticUplift × centerOfGravity",
-      explanation: `The upward uplift force creates an additional overturning moment when acting through the dam's center of gravity.`,
+      formula: "hydrostaticUplift × (baseWidth / 2)",
+      explanation: `The upward uplift force creates an additional overturning moment when acting through the middle of the dam's base.`,
       value: upliftMoment,
       unit: momentUnit
     });
@@ -526,19 +544,20 @@ export const calculateDamStability = (inputs: DamInputs): CalculationResults => 
   // Step 10: Calculate safety factors
   let safetyFactorSliding: number | undefined;
   
-  // Only calculate sliding factor if friction coefficient is provided
-  if (modifiedInputs.frictionCoefficient !== undefined) {
+  // Only calculate sliding factor if friction coefficient is provided and needed
+  if (needsFrictionCalculation && frictionCoefficient !== undefined) {
     safetyFactorSliding = calculateSlidingSafetyFactor(
       verticalReaction, 
       horizontalReaction, 
-      modifiedInputs.frictionCoefficient
+      frictionCoefficient,
+      needsFrictionCalculation
     );
     
     // Add sliding safety factor calculation step
     calculationSteps.push({
       title: "Calculate Factor of Safety against Sliding",
       formula: "(frictionCoefficient × verticalReaction) / horizontalReaction",
-      explanation: `The sliding safety factor compares the maximum friction force available (using coefficient of friction ${modifiedInputs.frictionCoefficient}) to the horizontal force trying to push the dam.`,
+      explanation: `The sliding safety factor compares the maximum friction force available (using coefficient of friction ${frictionCoefficient}) to the horizontal force trying to push the dam.`,
       value: safetyFactorSliding!,
       unit: ""
     });
@@ -567,7 +586,11 @@ export const calculateDamStability = (inputs: DamInputs): CalculationResults => 
     safetyFactorSliding,
     safetyFactorOverturning,
     calculationSteps,
-    solvedParameter
+    solvedParameter,
+    massMeasurements: {
+      selfWeightMass,
+      massUnit
+    }
   };
 };
 

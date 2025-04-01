@@ -77,6 +77,16 @@ const Results = () => {
                 : ''}
             </div>
           )}
+          
+          {/* Display mass conversion if available */}
+          {results.massMeasurements && (
+            <div className="mt-2 text-white/70">
+              <span>Self Weight Equivalent: </span>
+              <span className="font-medium">
+                {formatNumber(results.massMeasurements.selfWeightMass)} {results.massMeasurements.massUnit}
+              </span>
+            </div>
+          )}
         </div>
         
         {/* Dam visualization and safety factors */}
@@ -135,7 +145,7 @@ const Results = () => {
               title="Self Weight"
               value={results.selfWeight}
               unit={forceSuffix}
-              description="Weight of the structure"
+              description={`Weight of the structure (${results.massMeasurements?.selfWeightMass.toFixed(2)} ${results.massMeasurements?.massUnit})`}
               delay={3}
             />
             

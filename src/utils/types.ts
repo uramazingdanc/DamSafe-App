@@ -5,6 +5,9 @@ export type StructureType = "rectangle" | "triangle" | "trapezoid";
 // Water density units
 export type WaterDensityUnit = "kN/m³" | "kg/m³";
 
+// Mass units
+export type MassUnit = "kg" | "lb";
+
 // Input data types
 export interface DamInputs {
   structureType: StructureType;
@@ -15,12 +18,13 @@ export interface DamInputs {
   concreteDensity: number;
   waterDensity: number;
   waterDensityUnit: WaterDensityUnit;
-  frictionCoefficient?: number; // Now optional
+  frictionCoefficient?: number; // Optional
   heelUplift?: number; // Optional
   toeUplift?: number; // Optional
   unitSystem: 'metric' | 'imperial';
-  solveFor?: 'none' | 'waterLevel' | 'baseWidth' | 'frictionCoefficient'; // New field to determine what to solve for
+  solveFor?: 'none' | 'waterLevel' | 'baseWidth' | 'frictionCoefficient'; // What to solve for
   targetSafetyFactor?: number; // Target safety factor when solving for an unknown
+  needsFrictionCalculation: boolean; // Flag to indicate if friction calculation is needed
 }
 
 // Results data types
@@ -33,10 +37,14 @@ export interface CalculationResults {
   rightingMoment: number;
   overturningMoment: number;
   locationOfRy: number;
-  safetyFactorSliding?: number; // Now optional as it might not be calculated
+  safetyFactorSliding?: number; // Optional as it might not be calculated
   safetyFactorOverturning: number;
   calculationSteps: CalculationStep[];
   solvedParameter?: { name: string; value: number }; // For when solving for an unknown parameter
+  massMeasurements?: {
+    selfWeightMass: number;
+    massUnit: MassUnit;
+  }; // For displaying mass equivalents
 }
 
 // Step-by-step calculation explanation
@@ -46,4 +54,6 @@ export interface CalculationStep {
   explanation: string;
   value: number;
   unit?: string;
+  alternateValue?: number; // For displaying in alternate units
+  alternateUnit?: string;
 }
