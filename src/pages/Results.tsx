@@ -1,3 +1,4 @@
+
 import React, { useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import NavBar from '@/components/NavBar';
@@ -55,7 +56,7 @@ const Results = () => {
       <div className="container max-w-5xl mx-auto px-4 pt-20">
         <div className="text-center mb-8 animate-fade-up">
           <h1 className="text-2xl font-bold mb-2">Stability Results</h1>
-          <div className="flex items-center justify-center text-white/70">
+          <div className="flex items-center justify-center text-white">
             <span className="mr-2">Structure Type:</span>
             {getStructureIcon()}
             <span className="ml-1 capitalize">{inputs.structureType}</span>
@@ -63,16 +64,16 @@ const Results = () => {
           
           {results.solvedParameter && (
             <div className="mt-3 bg-dam-blue/20 inline-block px-4 py-2 rounded-full border border-dam-blue/30">
-              <span className="font-medium mr-2">Solved Parameter:</span>
-              <span className="capitalize">{results.solvedParameter.name.replace(/([A-Z])/g, ' $1').trim()}: </span>
-              <span className="font-bold">{formatNumber(results.solvedParameter.value)}</span>
+              <span className="font-medium mr-2 text-white">Solved Parameter:</span>
+              <span className="capitalize text-white">{results.solvedParameter.name.replace(/([A-Z])/g, ' $1').trim()}: </span>
+              <span className="font-bold text-white">{formatNumber(results.solvedParameter.value)}</span>
               {results.solvedParameter.name === 'waterLevel' || results.solvedParameter.name === 'baseWidth'
                 ? ` ${unitSuffix}`
                 : ''}
             </div>
           )}
           
-          <div className="mt-2 text-white/70">
+          <div className="mt-2 text-white">
             <span>Self Weight Equivalent: </span>
             <span className="font-medium">
               {formatNumber(results.massMeasurements.selfWeightMass)} {results.massMeasurements.massUnit}
