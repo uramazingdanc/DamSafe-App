@@ -41,10 +41,10 @@ export interface CalculationResults {
   safetyFactorOverturning: number;
   calculationSteps: CalculationStep[];
   solvedParameter?: { name: string; value: number }; // For when solving for an unknown parameter
-  massMeasurements?: {
+  massMeasurements: {
     selfWeightMass: number;
     massUnit: MassUnit;
-  }; // For displaying mass equivalents
+  }; // For displaying mass equivalents (no longer optional)
 }
 
 // Step-by-step calculation explanation

@@ -36,6 +36,7 @@ const InputField: React.FC<InputFieldProps> = ({
             "focus:ring-dam-blue/50 focus:border-dam-blue/50",
             error ? "border-red-500 focus:ring-red-500" : "",
             suffix ? "pr-12" : "",
+            props.disabled ? "opacity-60 cursor-not-allowed" : "",
             className
           )}
           {...props}

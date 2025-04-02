@@ -70,7 +70,7 @@ const Results = () => {
           {results.solvedParameter && (
             <div className="mt-3 bg-dam-blue/20 inline-block px-4 py-2 rounded-full border border-dam-blue/30">
               <span className="font-medium mr-2">Solved Parameter:</span>
-              <span className="capitalize">{results.solvedParameter.name}: </span>
+              <span className="capitalize">{results.solvedParameter.name.replace(/([A-Z])/g, ' $1').trim()}: </span>
               <span className="font-bold">{formatNumber(results.solvedParameter.value)}</span>
               {results.solvedParameter.name === 'waterLevel' || results.solvedParameter.name === 'baseWidth'
                 ? ` ${unitSuffix}`
@@ -78,15 +78,13 @@ const Results = () => {
             </div>
           )}
           
-          {/* Display mass conversion if available */}
-          {results.massMeasurements && (
-            <div className="mt-2 text-white/70">
-              <span>Self Weight Equivalent: </span>
-              <span className="font-medium">
-                {formatNumber(results.massMeasurements.selfWeightMass)} {results.massMeasurements.massUnit}
-              </span>
-            </div>
-          )}
+          {/* Always display mass conversion */}
+          <div className="mt-2 text-white/70">
+            <span>Self Weight Equivalent: </span>
+            <span className="font-medium">
+              {formatNumber(results.massMeasurements.selfWeightMass)} {results.massMeasurements.massUnit}
+            </span>
+          </div>
         </div>
         
         {/* Dam visualization and safety factors */}
@@ -137,7 +135,7 @@ const Results = () => {
         {/* Forces */}
         <div className="mb-8">
           <h2 className="text-lg font-medium border-b border-white/10 pb-2 mb-4 animate-fade-up animate-delay-300">
-            Forces
+            Forces and Mass
           </h2>
           
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
@@ -145,7 +143,7 @@ const Results = () => {
               title="Self Weight"
               value={results.selfWeight}
               unit={forceSuffix}
-              description={`Weight of the structure (${results.massMeasurements?.selfWeightMass.toFixed(2)} ${results.massMeasurements?.massUnit})`}
+              description={`Weight of the structure (${formatNumber(results.massMeasurements.selfWeightMass)} ${results.massMeasurements.massUnit})`}
               delay={3}
             />
             
@@ -199,7 +197,7 @@ const Results = () => {
           
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <CalculationCard
-              title="Righting Moment"
+              title="Righting Moment (Stabilizing)"
               value={results.rightingMoment}
               unit={momentSuffix}
               description="Stabilizing moment"
@@ -207,7 +205,7 @@ const Results = () => {
             />
             
             <CalculationCard
-              title="Overturning Moment"
+              title="Overturning Moment (Destabilizing)"
               value={results.overturningMoment}
               unit={momentSuffix}
               description="Destabilizing moment"
