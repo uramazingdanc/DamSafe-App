@@ -1,4 +1,3 @@
-
 import { DamInputs, CalculationResults, StructureType, WaterDensityUnit, CalculationStep, MassUnit } from './types';
 
 // Convert between kg/m³ and kN/m³
@@ -68,7 +67,7 @@ const getVolumeFormula = (structureType: StructureType): string => {
   }
 };
 
-// FIXED: Calculate center of gravity X position based on structural type
+// Calculate center of gravity X position based on structural type
 // This is measured from the left (heel) of the dam
 const calculateCenterOfGravity = (inputs: DamInputs): number => {
   const { structureType, baseWidth, crestWidth } = inputs;
@@ -82,7 +81,7 @@ const calculateCenterOfGravity = (inputs: DamInputs): number => {
       // For trapezoid, we need both base width and crest width
       if (!crestWidth) throw new Error('Crest width required for trapezoid');
       
-      // Correct formula for centroid of a trapezoid from the left edge
+      // Formula for centroid of a trapezoid from the left edge
       return baseWidth * (2 * baseWidth + crestWidth) / (3 * (baseWidth + crestWidth));
     default:
       throw new Error('Invalid structure type');
@@ -188,7 +187,7 @@ const solveForWaterLevel = (inputs: DamInputs, targetSafetyFactor: number): numb
   return mid; // Return best approximation after max iterations
 };
 
-// FIXED: Solve for required base width to achieve target safety factor
+// Solve for required base width to achieve target safety factor
 const solveForBaseWidth = (inputs: DamInputs, targetSafetyFactor: number): number => {
   // Implementation of numerical method (bisection) to find base width
   let low = 0.1; // Start with small positive number to avoid division by zero
@@ -243,7 +242,7 @@ const solveForFrictionCoefficient = (
   return (targetSafetyFactor * horizontalReaction) / verticalReaction;
 };
 
-// FIXED: Calculate intermediate results for use in various calculations
+// Calculate intermediate results for use in various calculations
 const calculateIntermediateResults = (inputs: DamInputs) => {
   // Calculate volume and self-weight
   const volume = calculateVolume(inputs);
@@ -268,8 +267,8 @@ const calculateIntermediateResults = (inputs: DamInputs) => {
   // Calculate horizontal reaction
   const horizontalReaction = hydrostaticPressure;
   
-  // FIXED: Calculate righting moment based on the dam's weight about the toe
-  // Righting moment is the moment due to self-weight calculated from the toe (right edge)
+  // Calculate righting moment based on the dam's weight about the toe
+  // Righting moment is the moment due to self-weight calculated about the left edge (heel)
   const rightingMoment = selfWeight * centerOfGravity;
   
   // Calculate pressure moment (water acts at h/3 from bottom)
@@ -474,7 +473,7 @@ export const calculateDamStability = (inputs: DamInputs): CalculationResults => 
   calculationSteps.push({
     title: "Calculate Vertical Reaction (Ry)",
     formula: "selfWeight - hydrostaticUplift",
-    explanation: `The net vertical force is the difference between the dam's self weight and the upward hydrostatic uplift force.`,
+    explanation: `The net vertical force is the difference between the dam's self weight (W) and the upward hydrostatic uplift force.`,
     value: verticalReaction,
     unit: forceUnit
   });
@@ -494,13 +493,12 @@ export const calculateDamStability = (inputs: DamInputs): CalculationResults => 
   calculationSteps.push({
     title: "Calculate Center of Gravity",
     formula: getCenterOfGravityFormula(structureType),
-    explanation: `The center of gravity position depends on the ${structureType} shape of the dam. It is measured from the left edge of the base.`,
+    explanation: `The center of gravity position depends on the ${structureType} shape of the dam. It is measured from the left edge (heel) of the base.`,
     value: centerOfGravity,
     unit: lengthUnit
   });
   
   // Step 7: Calculate righting moment (RM)
-  // FIXED: Corrected title and explanation for the righting moment
   calculationSteps.push({
     title: "Calculate Righting Moment (RM)",
     formula: "selfWeight × centerOfGravity",
@@ -545,7 +543,7 @@ export const calculateDamStability = (inputs: DamInputs): CalculationResults => 
   calculationSteps.push({
     title: "Calculate Location of Resultant (Ry)",
     formula: "(rightingMoment - overturningMoment) / verticalReaction",
-    explanation: `The location of the resultant vertical force is determined by taking moments about the left edge of the base.`,
+    explanation: `The location of the resultant vertical force is determined by taking moments about the left edge (heel) of the base.`,
     value: locationOfRy,
     unit: lengthUnit
   });
