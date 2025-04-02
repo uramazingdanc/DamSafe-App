@@ -268,8 +268,8 @@ const calculateIntermediateResults = (inputs: DamInputs) => {
   // Calculate horizontal reaction
   const horizontalReaction = hydrostaticPressure;
   
-  // FIXED: Calculate righting moment properly using the dam's structural type
-  // Righting moment is the moment due to self-weight calculated from the toe (left edge)
+  // FIXED: Calculate righting moment based on the dam's weight about the toe
+  // Righting moment is the moment due to self-weight calculated from the toe (right edge)
   const rightingMoment = selfWeight * centerOfGravity;
   
   // Calculate pressure moment (water acts at h/3 from bottom)
@@ -434,9 +434,9 @@ export const calculateDamStability = (inputs: DamInputs): CalculationResults => 
   
   // Add self-weight calculation step
   calculationSteps.push({
-    title: "Calculate Self Weight",
+    title: "Calculate Self Weight (W)",
     formula: "concreteDensity × volume",
-    explanation: `The self weight is the product of the concrete density (${concreteDensity} ${densityUnit}) and the volume (${formatNumber(volume)} ${lengthUnit}²).`,
+    explanation: `The self weight (W) is the product of the concrete density (${concreteDensity} ${densityUnit}) and the volume (${formatNumber(volume)} ${lengthUnit}²).`,
     value: selfWeight,
     unit: forceUnit,
     alternateValue: selfWeightMass,
@@ -502,9 +502,9 @@ export const calculateDamStability = (inputs: DamInputs): CalculationResults => 
   // Step 7: Calculate righting moment (RM)
   // FIXED: Corrected title and explanation for the righting moment
   calculationSteps.push({
-    title: "Calculate Stabilizing Moment",
+    title: "Calculate Righting Moment (RM)",
     formula: "selfWeight × centerOfGravity",
-    explanation: `The stabilizing (righting) moment is created by the dam's self weight acting through its center of gravity.`,
+    explanation: `The righting moment (RM) is created by the dam's self weight (W) acting through its center of gravity. This moment tends to resist overturning.`,
     value: rightingMoment,
     unit: momentUnit
   });
@@ -578,7 +578,7 @@ export const calculateDamStability = (inputs: DamInputs): CalculationResults => 
   calculationSteps.push({
     title: "Calculate Factor of Safety against Overturning",
     formula: "rightingMoment / overturningMoment",
-    explanation: `The overturning safety factor compares the stabilizing (righting) moment to the destabilizing (overturning) moment.`,
+    explanation: `The overturning safety factor compares the righting moment (RM) to the overturning moment (OM).`,
     value: safetyFactorOverturning,
     unit: ""
   });

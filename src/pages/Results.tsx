@@ -74,9 +74,9 @@ const Results = () => {
           )}
           
           <div className="mt-2 text-white">
-            <span>Self Weight Equivalent: </span>
+            <span>Self Weight (W): </span>
             <span className="font-medium">
-              {formatNumber(results.massMeasurements.selfWeightMass)} {results.massMeasurements.massUnit}
+              {formatNumber(results.selfWeight)} {forceSuffix} ({formatNumber(results.massMeasurements.selfWeightMass)} {results.massMeasurements.massUnit})
             </span>
           </div>
         </div>
@@ -129,7 +129,7 @@ const Results = () => {
           
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
             <CalculationCard
-              title="Self Weight"
+              title="Self Weight (W)"
               value={results.selfWeight}
               unit={forceSuffix}
               description={`Weight of the structure (${formatNumber(results.massMeasurements.selfWeightMass)} ${results.massMeasurements.massUnit})`}
@@ -185,7 +185,7 @@ const Results = () => {
           
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <CalculationCard
-              title="Stabilizing Moment"
+              title="Righting Moment (RM)"
               value={results.rightingMoment}
               unit={momentSuffix}
               description="Stabilizing moment from self-weight"
@@ -193,7 +193,7 @@ const Results = () => {
             />
             
             <CalculationCard
-              title="Overturning Moment"
+              title="Overturning Moment (OM)"
               value={results.overturningMoment}
               unit={momentSuffix}
               description="Destabilizing moment"
