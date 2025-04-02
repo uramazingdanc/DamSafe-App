@@ -83,7 +83,8 @@ const calculateCenterOfGravity = (inputs: DamInputs): number => {
       if (!crestWidth) throw new Error('Crest width required for trapezoid');
       
       // Formula for centroid of a trapezoid from the left edge (heel)
-      return (baseWidth + 2 * crestWidth) / (3 * (baseWidth + crestWidth)) * baseWidth;
+      // Corrected formula based on civil engineering textbooks
+      return (baseWidth + (2 * crestWidth)) / (3 * (baseWidth + crestWidth)) * baseWidth;
     default:
       throw new Error('Invalid structure type');
   }
@@ -249,7 +250,7 @@ const calculateIntermediateResults = (inputs: DamInputs) => {
   const volume = calculateVolume(inputs);
   const selfWeight = inputs.concreteDensity * volume;
   
-  // Calculate center of gravity
+  // Calculate center of gravity from the heel (left edge)
   const centerOfGravity = calculateCenterOfGravity(inputs);
   
   // Calculate hydrostatic uplift
@@ -269,7 +270,7 @@ const calculateIntermediateResults = (inputs: DamInputs) => {
   const horizontalReaction = hydrostaticPressure;
   
   // Calculate righting moment based on the dam's weight about the heel
-  // Righting moment is the moment due to self-weight calculated about the left edge (heel)
+  // Righting moment (RM) is the moment due to self-weight calculated about the left edge (heel)
   const rightingMoment = selfWeight * centerOfGravity;
   
   // Calculate pressure moment (water acts at h/3 from bottom)

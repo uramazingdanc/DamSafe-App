@@ -28,6 +28,21 @@ const DamVisualization: React.FC<DamVisualizationProps> = ({ inputs, locationOfR
   // Y-position of ground level
   const groundY = canvasHeight - 40;
   
+  // Calculate center of gravity
+  const getCenterOfGravity = () => {
+    switch (structureType) {
+      case 'rectangle':
+        return baseWidth / 2;
+      case 'triangle':
+        return baseWidth / 3;
+      case 'trapezoid':
+        if (!crestWidth) return baseWidth / 2;
+        return (baseWidth + (2 * crestWidth)) / (3 * (baseWidth + crestWidth)) * baseWidth;
+    }
+  };
+  
+  const centerOfGravity = getCenterOfGravity();
+  
   // Draw dam shape based on structure type
   const renderDamShape = () => {
     // Points array for the dam shape
@@ -99,6 +114,18 @@ const DamVisualization: React.FC<DamVisualizationProps> = ({ inputs, locationOfR
             fill="rgba(59, 130, 246, 0.5)"
           />
         )}
+        
+        {/* Center of gravity indicator */}
+        <circle
+          cx={xOffset + (centerOfGravity * scaleFactor)}
+          cy={groundY - (structureType === 'rectangle' ? scaledHeight / 2 : 
+                         structureType === 'triangle' ? scaledHeight / 3 :
+                         scaledHeight / 2)}
+          r={3}
+          fill="#fbbf24"
+          stroke="#f59e0b"
+          strokeWidth={1}
+        />
         
         {/* Center of pressure indicator for Ry location */}
         {locationOfRy && (
