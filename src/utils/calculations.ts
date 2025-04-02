@@ -1,3 +1,4 @@
+
 import { DamInputs, CalculationResults, StructureType, WaterDensityUnit, CalculationStep, MassUnit } from './types';
 
 // Convert between kg/m³ and kN/m³
@@ -81,8 +82,8 @@ const calculateCenterOfGravity = (inputs: DamInputs): number => {
       // For trapezoid, we need both base width and crest width
       if (!crestWidth) throw new Error('Crest width required for trapezoid');
       
-      // Formula for centroid of a trapezoid from the left edge
-      return baseWidth * (2 * baseWidth + crestWidth) / (3 * (baseWidth + crestWidth));
+      // Formula for centroid of a trapezoid from the left edge (heel)
+      return (baseWidth + 2 * crestWidth) / (3 * (baseWidth + crestWidth)) * baseWidth;
     default:
       throw new Error('Invalid structure type');
   }
@@ -96,7 +97,7 @@ const getCenterOfGravityFormula = (structureType: StructureType): string => {
     case 'triangle':
       return 'baseWidth / 3';
     case 'trapezoid':
-      return 'baseWidth × (2 × baseWidth + crestWidth) / (3 × (baseWidth + crestWidth))';
+      return '(baseWidth + 2 × crestWidth) / (3 × (baseWidth + crestWidth)) × baseWidth';
     default:
       return '';
   }
@@ -267,7 +268,7 @@ const calculateIntermediateResults = (inputs: DamInputs) => {
   // Calculate horizontal reaction
   const horizontalReaction = hydrostaticPressure;
   
-  // Calculate righting moment based on the dam's weight about the toe
+  // Calculate righting moment based on the dam's weight about the heel
   // Righting moment is the moment due to self-weight calculated about the left edge (heel)
   const rightingMoment = selfWeight * centerOfGravity;
   
@@ -275,7 +276,7 @@ const calculateIntermediateResults = (inputs: DamInputs) => {
   const pressureMoment = hydrostaticPressure * (inputs.waterLevel / 3);
   
   // Calculate uplift moment
-  // The uplift force creates an overturning moment measured from the toe
+  // The uplift force creates an overturning moment measured from the heel
   const upliftMoment = hydrostaticUplift * inputs.baseWidth / 2;
   
   // Calculate total overturning moment
