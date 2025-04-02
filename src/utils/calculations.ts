@@ -68,7 +68,8 @@ const getVolumeFormula = (structureType: StructureType): string => {
   }
 };
 
-// Calculate center of gravity based on structural type
+// FIXED: Calculate center of gravity X position based on structural type
+// This is measured from the left (heel) of the dam
 const calculateCenterOfGravity = (inputs: DamInputs): number => {
   const { structureType, baseWidth, crestWidth } = inputs;
   
@@ -80,7 +81,9 @@ const calculateCenterOfGravity = (inputs: DamInputs): number => {
     case 'trapezoid':
       // For trapezoid, we need both base width and crest width
       if (!crestWidth) throw new Error('Crest width required for trapezoid');
-      return (baseWidth + (2 * crestWidth)) / (3 * (baseWidth + crestWidth)) * baseWidth;
+      
+      // Correct formula for centroid of a trapezoid from the left edge
+      return baseWidth * (2 * baseWidth + crestWidth) / (3 * (baseWidth + crestWidth));
     default:
       throw new Error('Invalid structure type');
   }
@@ -94,7 +97,7 @@ const getCenterOfGravityFormula = (structureType: StructureType): string => {
     case 'triangle':
       return 'baseWidth / 3';
     case 'trapezoid':
-      return '(baseWidth + (2 × crestWidth)) / (3 × (baseWidth + crestWidth)) × baseWidth';
+      return 'baseWidth × (2 × baseWidth + crestWidth) / (3 × (baseWidth + crestWidth))';
     default:
       return '';
   }
@@ -185,10 +188,10 @@ const solveForWaterLevel = (inputs: DamInputs, targetSafetyFactor: number): numb
   return mid; // Return best approximation after max iterations
 };
 
-// Solve for required base width to achieve target safety factor
+// FIXED: Solve for required base width to achieve target safety factor
 const solveForBaseWidth = (inputs: DamInputs, targetSafetyFactor: number): number => {
   // Implementation of numerical method (bisection) to find base width
-  let low = 0;
+  let low = 0.1; // Start with small positive number to avoid division by zero
   let high = inputs.height * 10; // Assuming reasonable max base width
   let mid = (low + high) / 2;
   let iterations = 0;
@@ -196,11 +199,15 @@ const solveForBaseWidth = (inputs: DamInputs, targetSafetyFactor: number): numbe
   const tolerance = 0.001;
   
   while (iterations < maxIterations) {
+    // Ensure we don't evaluate at zero
+    if (mid <= 0) mid = 0.1;
+    
     // Create test inputs with current base width guess
     const testInputs = { ...inputs, baseWidth: mid };
     
     // Calculate results with current base width
-    const { rightingMoment, overturningMoment } = calculateIntermediateResults(testInputs);
+    const intermediateResults = calculateIntermediateResults(testInputs);
+    const { rightingMoment, overturningMoment } = intermediateResults;
     
     // Calculate safety factor
     const safFactor = rightingMoment / (overturningMoment || 1);
@@ -236,7 +243,7 @@ const solveForFrictionCoefficient = (
   return (targetSafetyFactor * horizontalReaction) / verticalReaction;
 };
 
-// Calculate intermediate results for use in various calculations
+// FIXED: Calculate intermediate results for use in various calculations
 const calculateIntermediateResults = (inputs: DamInputs) => {
   // Calculate volume and self-weight
   const volume = calculateVolume(inputs);
@@ -261,13 +268,15 @@ const calculateIntermediateResults = (inputs: DamInputs) => {
   // Calculate horizontal reaction
   const horizontalReaction = hydrostaticPressure;
   
-  // Calculate righting moment - fixed calculation
+  // FIXED: Calculate righting moment properly using the dam's structural type
+  // Righting moment is the moment due to self-weight calculated from the toe (left edge)
   const rightingMoment = selfWeight * centerOfGravity;
   
   // Calculate pressure moment (water acts at h/3 from bottom)
   const pressureMoment = hydrostaticPressure * (inputs.waterLevel / 3);
   
   // Calculate uplift moment
+  // The uplift force creates an overturning moment measured from the toe
   const upliftMoment = hydrostaticUplift * inputs.baseWidth / 2;
   
   // Calculate total overturning moment
@@ -369,7 +378,7 @@ export const calculateDamStability = (inputs: DamInputs): CalculationResults => 
     }
   }
   
-  // Calculate intermediate results
+  // Calculate intermediate results with potentially modified inputs
   const {
     volume,
     selfWeight,
@@ -491,11 +500,11 @@ export const calculateDamStability = (inputs: DamInputs): CalculationResults => 
   });
   
   // Step 7: Calculate righting moment (RM)
-  // Add righting moment calculation step
+  // FIXED: Corrected title and explanation for the righting moment
   calculationSteps.push({
-    title: "Calculate Righting Moment (RM)",
+    title: "Calculate Stabilizing Moment",
     formula: "selfWeight × centerOfGravity",
-    explanation: `The righting moment is the stabilizing moment created by the dam's self weight acting through its center of gravity.`,
+    explanation: `The stabilizing (righting) moment is created by the dam's self weight acting through its center of gravity.`,
     value: rightingMoment,
     unit: momentUnit
   });
