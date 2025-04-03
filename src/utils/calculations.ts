@@ -1,4 +1,3 @@
-
 import { DamInputs, CalculationResults, StructureType, WaterDensityUnit, CalculationStep, MassUnit } from './types';
 
 // Convert between kg/m³ and kN/m³
@@ -83,8 +82,24 @@ const calculateCenterOfGravity = (inputs: DamInputs): number => {
       if (!crestWidth) throw new Error('Crest width required for trapezoid');
       
       // Formula for centroid of a trapezoid from the left edge (heel)
-      // Corrected formula based on civil engineering textbooks
       return (baseWidth + (2 * crestWidth)) / (3 * (baseWidth + crestWidth)) * baseWidth;
+    default:
+      throw new Error('Invalid structure type');
+  }
+};
+
+// Calculate the center of gravity height (Y) from the base
+const calculateCenterOfGravityHeight = (inputs: DamInputs): number => {
+  const { structureType, height, crestWidth } = inputs;
+  
+  switch (structureType) {
+    case 'rectangle':
+      return height / 2;
+    case 'triangle':
+      return height / 3;
+    case 'trapezoid':
+      if (!crestWidth) throw new Error('Crest width required for trapezoid');
+      return height / 3 * (2 * crestWidth + baseWidth) / (crestWidth + baseWidth);
     default:
       throw new Error('Invalid structure type');
   }
@@ -150,7 +165,6 @@ const calculateOverturningFactor = (
 
 // Solve for required water level to achieve target safety factor
 const solveForWaterLevel = (inputs: DamInputs, targetSafetyFactor: number): number => {
-  // Implementation of numerical method (bisection) to find water level
   let low = 0;
   let high = inputs.height;
   let mid = (low + high) / 2;
@@ -191,7 +205,6 @@ const solveForWaterLevel = (inputs: DamInputs, targetSafetyFactor: number): numb
 
 // Solve for required base width to achieve target safety factor
 const solveForBaseWidth = (inputs: DamInputs, targetSafetyFactor: number): number => {
-  // Implementation of numerical method (bisection) to find base width
   let low = 0.1; // Start with small positive number to avoid division by zero
   let high = inputs.height * 10; // Assuming reasonable max base width
   let mid = (low + high) / 2;
@@ -240,7 +253,6 @@ const solveForFrictionCoefficient = (
   horizontalReaction: number, 
   targetSafetyFactor: number
 ): number => {
-  // Direct formula: f = (FS * H) / V
   return (targetSafetyFactor * horizontalReaction) / verticalReaction;
 };
 
