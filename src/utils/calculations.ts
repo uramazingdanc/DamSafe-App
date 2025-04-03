@@ -1,3 +1,4 @@
+
 import { DamInputs, CalculationResults, StructureType, WaterDensityUnit, CalculationStep, MassUnit } from './types';
 
 // Convert between kg/m³ and kN/m³
@@ -90,7 +91,7 @@ const calculateCenterOfGravity = (inputs: DamInputs): number => {
 
 // Calculate the center of gravity height (Y) from the base
 const calculateCenterOfGravityHeight = (inputs: DamInputs): number => {
-  const { structureType, height, crestWidth } = inputs;
+  const { structureType, height, crestWidth, baseWidth } = inputs;
   
   switch (structureType) {
     case 'rectangle':
